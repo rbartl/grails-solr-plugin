@@ -257,7 +257,7 @@ open source search server through the SolrJ library.
           // fieldName may be null if the ignore annotion is used, not the best way to handle but ok for now
           if(fieldName) {
             def docKey = prefix + fieldName                
-            def docValue = delegateDomainOjbect.getProperty(prop.name) 
+            def docValue = delegateDomainOjbect.properties[prop.name]
           
             // Removed because of issues with stale indexing when composed index changes
             // Recursive indexing of composition fields
