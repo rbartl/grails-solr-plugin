@@ -30,31 +30,18 @@ class SolrTagLib {
       if((facetValues && facetValues.size() >= min) || currentFacetSelection){
 
         out << "<div class=\"${cssClass}\">"
+        request.setAttribute("solrresult",result)
+        request.setAttribute("solrfield",field)
+        request.setAttribute("solrfq",fq)
+        request.setAttribute("solrq",q)
+        request.setAttribute("solraction",action)
         out << body()
         out << currentFacetSelection
 
-        result.queryResponse.getFacetField(field).values.each { item ->
-
-          def linkParams = [:]
-          if(action) 
-            linkParams.action = action
-          linkParams.params = [:]
-          linkParams.params.q = q
-          linkParams.params.fq = fq.size() ? ([item.asFilterQuery] + fq) : [item.asFilterQuery]
-
-          out << "<ul>"
-          if(!fq.contains(item.asFilterQuery) && item.count > 0) {
-            out << "<li>" 
-            out << link(linkParams) { item }
-            out << "</li>"          
-          }
-          out << "</ul>"
-        }
-        out << "</div>"
       }
     }
-    
-                
+
+
     // Call the grails link taglib if this is an indexed domain, otherwise return a link from
     // a field specified in which should be the SolrDocuement attribute to use if not a domain
     // <solr:resultLink result="${result}" field="solrDocuemntFieldNameIfNotDomain"
@@ -82,5 +69,42 @@ class SolrTagLib {
           out << "<a href=\"${altFieldVal}\">${body()}</a> "
       }
     }
+
+  /**
+   * Nested Tag for <solr:facet />, it provides a possibility to format the Tag of the various Facet Values.
+   * Example:
+   *   <solr:facetvalue>
+   *    <g:message code="${it.name}" default="--${it.name}--"/> (${it.count})
+   *   </solr:facetvalue>
+   */
+  def facetvalue = { attrs, body ->
+
+    def result = request.getAttribute("solrresult")
+    def field = request.getAttribute("solrfield")
+    def fq = request.getAttribute("solrfq")
+    def q = request.getAttribute("solrq")
+    def action = request.getAttribute("solraction")
+    
+    result.queryResponse.getFacetField(field).values.each { item ->
+
+      def linkParams = [:]
+      if(action)
+        linkParams.action = action
+      linkParams.params = [:]
+      linkParams.params.q = q
+      linkParams.params.fq = fq.size() ? ([item.asFilterQuery] + fq) : [item.asFilterQuery]
+
+      out << "<ul>"
+      if(!fq.contains(item.asFilterQuery) && item.count > 0) {
+        out << "<li>"
+        out << link(linkParams) {
+          body(item)
+        }
+        out << "</li>"
+      }
+      out << "</ul>"
+    }
+    out << "</div>"
+  }
     
 }
