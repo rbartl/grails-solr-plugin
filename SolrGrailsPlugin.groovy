@@ -37,8 +37,12 @@ import org.grails.solr.Solr
 import org.grails.solr.SolrUtil
 import java.lang.reflect.Method
 import org.apache.commons.beanutils.BeanUtils
+import org.apache.commons.logging.Log
+import org.apache.commons.logging.LogFactory
 
 class SolrGrailsPlugin {
+    Log log = LogFactory.getLog(getClass());
+
     // the plugin version
     def version = "0.1"
     // the version or versions of Grails the plugin is designed for
@@ -302,7 +306,8 @@ open source search server through the SolrJ library.
     doc.addField("${prefix}id", "${delegateDomainOjbect.class.name}-${delegateDomainOjbect.id}")
 
     // find additional non domain Fields
-    def props = BeanUtils.describe(delegateDomainOjbect)
+    def props = delegateDomainOjbect.properties
+//    def props = PropertyUtils.describe(delegateDomainOjbect)
     for (prop in props)
     {
       if (!domainFieldNames.contains(prop.key))
@@ -312,10 +317,17 @@ open source search server through the SolrJ library.
           doc.addField("${prefix}${prop.key}", prop.value)     
         }
         String methodName = "get" + prop.key.substring(0,1).toUpperCase() + prop.key.substring(1)
-        Method methodProp = clazz.getMethod(methodName,null);
-        if (methodProp != null && methodProp.isAnnotationPresent(Solr))
+        try
         {
-          doc.addField("${prefix}${prop.key}", prop.value)
+          Method methodProp = clazz.getMethod(methodName,null);
+          if (methodProp != null && methodProp.isAnnotationPresent(Solr))
+          {
+            doc.addField("${prefix}${prop.key}", prop.value)
+          }
+        }
+        catch (java.lang.NoSuchMethodException e)
+        {
+          log.error ("method not found",e)
         }
       }
     }
