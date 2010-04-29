@@ -28,7 +28,7 @@ import java.lang.annotation.*;
  * Describes the Solr annotated API element.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 public @interface Solr {
     String field() default "";
     boolean asText() default false;

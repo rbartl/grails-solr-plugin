@@ -35,6 +35,8 @@ import org.codehaus.groovy.grails.commons.GrailsClassUtils
 import org.grails.solr.SolrIndexListener
 import org.grails.solr.Solr
 import org.grails.solr.SolrUtil
+import java.lang.reflect.Method
+import org.apache.commons.beanutils.BeanUtils
 
 class SolrGrailsPlugin {
     // the plugin version
@@ -236,9 +238,11 @@ open source search server through the SolrJ library.
   private indexDomain(application, delegateDomainOjbect, doc, depth = 1, prefix = "") {
     def domainDesc = application.getArtefact(DomainClassArtefactHandler.TYPE, delegateDomainOjbect.class.name)
     def clazz = (delegateDomainOjbect.class.name == 'java.lang.Class') ? delegateDomainOjbect : delegateDomainOjbect.class
-    
+    HashSet<String> domainFieldNames = new HashSet<String>(); 
+
     domainDesc.getProperties().each { prop ->
 
+      domainFieldNames.add(prop.name)
       //println "the type for ${it.name} is ${it.type}"
       // if the property is a closure, the type (by observation) is java.lang.Object
       // TODO: reconsider passing on all java.lang.Objects
@@ -286,7 +290,6 @@ open source search server through the SolrJ library.
               doc.addField("${prefix}${prop.name}_t", docValue)     
             }
           }
-            
           //println "Indexing: ${docKey} = ${docValue}"
         }               
       } // if ignored props
@@ -297,7 +300,26 @@ open source search server through the SolrJ library.
     
     // add a field for the id which will be the classname dash id
     doc.addField("${prefix}id", "${delegateDomainOjbect.class.name}-${delegateDomainOjbect.id}")
-    
+
+    // find additional non domain Fields
+    def props = BeanUtils.describe(delegateDomainOjbect)
+    for (prop in props)
+    {
+      if (!domainFieldNames.contains(prop.key))
+      {
+        def clazzProp = clazz.declaredFields.find{ field -> field.name == prop.key}
+        if(clazzProp!= null && clazzProp.isAnnotationPresent(Solr)) {
+          doc.addField("${prefix}${prop.key}", prop.value)     
+        }
+        String methodName = "get" + prop.key.substring(0,1).toUpperCase() + prop.key.substring(1)
+        Method methodProp = clazz.getMethod(methodName,null);
+        if (methodProp != null && methodProp.isAnnotationPresent(Solr))
+        {
+          doc.addField("${prefix}${prop.key}", prop.value)
+        }
+      }
+    }
+
     if(doc.getField(SolrUtil.TITLE_FIELD) == null) {
       def solrTitleMethod = delegateDomainOjbect.metaClass.pickMethod("solrTitle")
       def solrTitle = (solrTitleMethod != null) ? solrTitleMethod.invoke(delegateDomainOjbect) : delegateDomainOjbect.toString()
