@@ -23,9 +23,6 @@ open source search server through the SolrJ library.
   </resources>
   <dependencies>
     <plugin name='domainClass' version='1.1 &gt; *' />
-    <resolvers>
-      <resolver type='grailsPlugins' name='grailsPlugins' />
-    </resolvers>
   </dependencies>
   <behavior />
 </plugin>
